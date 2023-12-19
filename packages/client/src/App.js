@@ -1,9 +1,13 @@
+import { ethers } from "ethers";
 import React, { useEffect, useState } from "react";
 
 import "./App.css";
 
+import abi from './utils/WavePortal.json';
+
 export default function App() {
-  const wave = () => {};
+  const contractAddress = "0x6d829160212c00a52c630d8272bab4b0b90b9c50";
+  const contractABI = abi.abi;
 
   const [currentAccount, setCurrentAccount] = useState("");
   useEffect(() => {
@@ -47,6 +51,33 @@ export default function App() {
     }
   };
 
+  const wave = async () => {
+    try {
+      const { ethereum } = window;
+      if (!ethereum) {
+        alert("Get MetaMask!");
+        return;
+      }
+      const provider = new ethers.providers.Web3Provider(ethereum);
+      const signer = provider.getSigner();
+      const wavePortalContract = new ethers.Contract(
+        contractAddress,
+        contractABI,
+        signer
+      );
+      const count = await wavePortalContract.getTotalWaves();
+      console.log("Retrieved total wave count...", count.toNumber());
+      const waveTxn = await wavePortalContract.wave();
+      console.log("Mining...", waveTxn.hash);
+      await waveTxn.wait();
+      console.log("Mined -- ", waveTxn.hash);
+      const newCount = await wavePortalContract.getTotalWaves();
+      console.log("Retrieved total wave count...", newCount.toNumber());
+    } catch (error) {
+      console.log(error);
+    }
+  };
+
   useEffect(() => {
     checkIfWalletIsConnected();
   }, []);
@@ -71,7 +102,11 @@ export default function App() {
           </span>
         </div>
 
-        <button className="waveButton" onClick={wave}>
+        <button
+          className="waveButton"
+          onClick={wave}
+          disabled={!currentAccount}
+        >
           Wave at Me
         </button>
 
